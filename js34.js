@@ -89,7 +89,7 @@ function start(){
  if(typeof THREE==='undefined'||typeof S==='undefined'||typeof D2Core==='undefined'||typeof walls==='undefined'||typeof setupMatch!=='function'||typeof newRound!=='function')throw new Error('jogo incompleto');
 
  st('Dust2 carregando…');
- Promise.all([get('dust2.bin'),get('dust2.glb'),loadLoader(0)]).then(([bin,glb])=>{
+ Promise.all([get('dust2.bin'),get('dust2b.glb'),loadLoader(0)]).then(([bin,glb])=>{
   CORE=D2Core(bin,OFF);
   const cib0=window.createImageBitmap;window.createImageBitmap=undefined;
   try{new THREE.GLTFLoader().parse(glb,'',gltf=>{
