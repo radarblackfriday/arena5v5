@@ -9,7 +9,8 @@ let dead=false,ON=false,READY=false,CORE=null,GRP=null,SITES=null,MESHES=[],HID=
 const OFF=3.5;                       /* o mapa é levantado 3,5 m para o chão nunca ficar abaixo de y=0 */
 const A_SITE=[15,-44.5],B_SITE=[-32,-47.5],T_SP=[-25,10],CT_SP=[-12,-39.5];
 const SRC=['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js','https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/GLTFLoader.js'];
-const fail=e=>{dead=true;try{leave()}catch(_){}try{console.error('[dust2]',e)}catch(_){}};
+function st(t){try{let d=document.getElementById('d2st');if(!d){d=document.createElement('div');d.id='d2st';d.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99999;font:10px sans-serif;color:#ffd24a;background:rgba(0,0,0,.55);padding:1px 4px;pointer-events:none;max-width:70vw';document.body.appendChild(d)}d.textContent=t}catch(_){}}
+const fail=e=>{st('Dust2 ERRO: '+(e&&e.message||e));dead=true;try{leave()}catch(_){}try{console.error('[dust2]',e)}catch(_){}};
 const rn=()=>typeof rnd==='function'?rnd():Math.random();
 function loadLoader(i){return new Promise((res,rej)=>{if(THREE.GLTFLoader)return res();if(i>=SRC.length)return rej(new Error('GLTFLoader indisponível'));
  const s=document.createElement('script');s.src=SRC[i];s.onload=()=>THREE.GLTFLoader?res():loadLoader(i+1).then(res,rej);s.onerror=()=>loadLoader(i+1).then(res,rej);document.head.appendChild(s)})}
@@ -17,7 +18,8 @@ const get=u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u+' '+r.status);return r
 
 /* ---- guarda o que fica visível do mapa antigo (não esconde luzes, céu, sol, câmera, bomba) ---- */
 function snapshot(){
- const keep=o=>o===C||o===bm||o.isLight||(typeof WG!=='undefined'&&o===WG)||(o.material&&o.material.side===THREE.BackSide)||
+ const hasBot=o=>{let f=false;o.traverse&&o.traverse(x=>{if(x.userData&&x.userData.bot)f=true});return f};
+ const keep=o=>o===GRP||o===SITES||hasBot(o)||o===C||o===bm||o.isLight||(typeof WG!=='undefined'&&o===WG)||(o.material&&o.material.side===THREE.BackSide)||
   (o.geometry&&o.geometry.type==='SphereGeometry'&&o.geometry.parameters.radius>=7)||(o.isSprite&&o.material.fog===false&&o.scale.x>10);
  return S.children.filter(o=>o.visible&&(o.isMesh||o.isGroup||o.isSprite)&&!keep(o))}
 let OLDVIS=null;               /* objetos do mapa antigo, anotados quando o jogo abre */
@@ -36,7 +38,7 @@ function enter(){
  if(ON)return;if(!READY||!CORE||dead)throw new Error('mapa não pronto');
  ON=true;
  BAK={walls:walls.slice(),boxes:boxes.slice(),ND:ND.slice(),SI:SI.map(v=>v.clone()),fog:S.fog,bg:S.background,far:C.far};
- OLDVIS.forEach(o=>o.visible=false);
+ OLDVIS=snapshot();OLDVIS.forEach(o=>o.visible=false);st('Dust2 LIGADO ('+OLDVIS.length+' itens antigos escondidos)');
  S.add(GRP);GRP.visible=true;if(!SITES)SITES=mkSites();S.add(SITES);
  walls.length=0;MESHES.forEach(m=>walls.push(m));boxes.length=0;
  const sp=[A_SITE,B_SITE];SI.forEach((v,i)=>v.set(sp[i][0],CORE.ground(sp[i][0],sp[i][1]),sp[i][1]));
@@ -85,7 +87,8 @@ function frame(){
 
 function start(){
  if(typeof THREE==='undefined'||typeof S==='undefined'||typeof D2Core==='undefined'||typeof walls==='undefined'||typeof setupMatch!=='function'||typeof newRound!=='function')throw new Error('jogo incompleto');
- OLDVIS=snapshot();
+
+ st('Dust2 carregando…');
  Promise.all([get('dust2.bin'),get('dust2.glb'),loadLoader(0)]).then(([bin,glb])=>{
   CORE=D2Core(bin,OFF);
   const cib0=window.createImageBitmap;window.createImageBitmap=undefined;
@@ -95,7 +98,7 @@ function start(){
     GRP.traverse(o=>{if(!o.isMesh)return;MESHES.push(o);o.castShadow=o.receiveShadow=false;
      [].concat(o.material).forEach(m=>{if(m.map){m.map.encoding=THREE.LinearEncoding;m.map.anisotropy=4;m.map.needsUpdate=true}m.fog=false;m.needsUpdate=true})});
     if(!MESHES.length)throw new Error('mapa vazio');
-    GRP.updateMatrixWorld(true);READY=true;console.log('[dust2] ok',MESHES.length,'peças')
+    GRP.updateMatrixWorld(true);READY=true;st('Dust2 pronto ('+MESHES.length+' peças)');console.log('[dust2] ok',MESHES.length,'peças')
    }catch(e){fail(e)}},e=>fail(e))}finally{window.createImageBitmap=cib0}
  }).catch(fail);
  const osm=window.setupMatch;
