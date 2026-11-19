@@ -5,11 +5,11 @@
    Só liga nas partidas 5v5 / mata-mata. No treino, e se algo falhar, o jogo usa o mapa antigo. */
 (function(){
 'use strict';
-let LST=0,dead=false,ON=false,READY=false,CORE=null,GRP=null,SITES=null,MESHES=[],HID=[],BAK=null,gS=0,BUD=2,lt=performance.now();
+let LST=0,LSH=0,dead=false,ON=false,READY=false,CORE=null,GRP=null,SITES=null,MESHES=[],HID=[],BAK=null,gS=0,BUD=2,lt=performance.now();
 const OFF=3.5;                       /* o mapa é levantado 3,5 m para o chão nunca ficar abaixo de y=0 */
 const A_SITE=[15,-44.5],B_SITE=[-32,-47.5],T_SP=[-25,10],CT_SP=[-12,-39.5];
 const SRC=['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js','https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/GLTFLoader.js'];
-function st(t){try{let d=document.getElementById('d2st');if(!d){d=document.createElement('div');d.id='d2st';d.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99999;font:bold 15px sans-serif;color:#ffd24a;background:rgba(0,0,0,.55);padding:1px 4px;pointer-events:none;max-width:70vw';document.body.appendChild(d)}d.textContent='[v3] '+t}catch(_){}}
+function st(t){try{let d=document.getElementById('d2st');if(!d){d=document.createElement('div');d.id='d2st';d.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99999;font:bold 15px sans-serif;color:#ffd24a;background:rgba(0,0,0,.55);padding:1px 4px;pointer-events:none;max-width:70vw';document.body.appendChild(d)}d.textContent='[v4] '+t}catch(_){}}
 const fail=e=>{st('Dust2 ERRO: '+(e&&e.message||e));dead=true;try{leave()}catch(_){}try{console.error('[dust2]',e)}catch(_){}};
 const rn=()=>typeof rnd==='function'?rnd():Math.random();
 function loadLoader(i){return new Promise((res,rej)=>{if(THREE.GLTFLoader)return res();if(i>=SRC.length)return rej(new Error('GLTFLoader indisponível'));
@@ -56,7 +56,14 @@ function leave(){
 /* ---- troca das funções do jogo (só valem com o mapa ligado) ---- */
 const ocol=col,olos=los,onav=nav,os0=spawn0;
 col=function(p,r){if(!ON)return ocol(p,r);CORE.col(p,r*.82)};
-los=function(a,b){if(!ON)return olos(a,b);return CORE.los(a,b)};
+/* visão do bot: primeiro a grade (rápido) e depois um raio de verdade contra o mapa, na altura do peito */
+let RC3=null;const o3=new V(),d3=new V();
+function ray3(a,b){
+ if(!RC3)RC3=new THREE.Raycaster();
+ o3.set(a.x,a.y+1.5,a.z);d3.set(b.x-a.x,(b.y+1.35)-(a.y+1.5),b.z-a.z);const L=d3.length();if(L<.3)return true;d3.multiplyScalar(1/L);
+ RC3.set(o3,d3);RC3.near=0;RC3.far=L-.2;RC3.firstHitOnly=true;
+ return RC3.intersectObjects(MESHES,false).length===0}
+los=function(a,b){if(!ON)return olos(a,b);if(!CORE.los(a,b))return false;try{return ray3(a,b)}catch(_){return true}};
 spawn0=function(e){
  os0(e);if(!ON)return;
  const at=e.team?T_SP:CT_SP,q=CORE.randomFree(at[0],at[1],3.4,.9,rn);
@@ -81,6 +88,7 @@ nav=function(b,g){
 function frame(){
  const now=performance.now();let dt=(now-lt)/1000;lt=now;if(!(dt>0)||dt>.1)dt=.016;BUD=2;
  if(now-LST>1000){LST=now;st('Dust2 LIGADO · chão '+CORE.ground(P.p.x,P.p.z).toFixed(1)+' · escondidos '+(OLDVIS?OLDVIS.length:0)+' · mapa na cena '+(GRP&&GRP.parent===S?'sim':'NÃO'))}
+ if(now-LSH>100){LSH=now;for(const b of bots){if(b.hp>0&&b.tg&&b.tg.hp>0&&!los(b.p,b.tg.p)){b.tg=null}}}
  const g=CORE.ground(P.p.x,P.p.z);gS=Math.abs(g-gS)>1.5?g:gS+(g-gS)*(1-Math.exp(-dt*14));
  P.p.y=g;C.position.y+=gS;
  for(const b of bots){const y=CORE.ground(b.p.x,b.p.z);b.p.y=y;if(b.mesh)b.mesh.position.y=y}
