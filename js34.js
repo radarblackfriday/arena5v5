@@ -101,13 +101,11 @@ function start(){
     GRP.updateMatrixWorld(true);READY=true;st('Dust2 pronto ('+MESHES.length+' peças)');console.log('[dust2] ok',MESHES.length,'peças')
    }catch(e){fail(e)}},e=>fail(e))}finally{window.createImageBitmap=cib0}
  }).catch(fail);
- const osm=window.setupMatch;
- window.setupMatch=function(){
-  const r=osm.apply(this,arguments);
-  try{const want=!dead&&READY&&LB.mode!==2&&!(window.__TR&&(__TR.pending||__TR.on));if(want)enter();else leave()}catch(e){fail(e)}
-  return r};
+ /* liga/desliga o mapa a cada rodada (o setupMatch é trocado pelo módulo dos bots, por isso uso o newRound) */
  const onr=window.newRound;
- window.newRound=function(){const r=onr.apply(this,arguments);try{if(ON){P.yaw=P.team?0:Math.PI}}catch(_){}return r};
+ window.newRound=function(){
+  try{const want=!dead&&READY&&LB.mode!==2&&!(window.__TR&&(__TR.pending||__TR.on));if(want)enter();else leave()}catch(e){fail(e)}
+  const r=onr.apply(this,arguments);try{if(ON){P.yaw=P.team?0:Math.PI}}catch(_){}return r};
  const pr=R.render;
  R.render=function(s,c){if(ON&&!dead&&s===S&&c===C){try{frame()}catch(e){fail(e)}}return pr.apply(R,arguments)};
 }
