@@ -5,11 +5,11 @@
    Só liga nas partidas 5v5 / mata-mata. No treino, e se algo falhar, o jogo usa o mapa antigo. */
 (function(){
 'use strict';
-let dead=false,ON=false,READY=false,CORE=null,GRP=null,SITES=null,MESHES=[],HID=[],BAK=null,gS=0,BUD=2,lt=performance.now();
+let LST=0,dead=false,ON=false,READY=false,CORE=null,GRP=null,SITES=null,MESHES=[],HID=[],BAK=null,gS=0,BUD=2,lt=performance.now();
 const OFF=3.5;                       /* o mapa é levantado 3,5 m para o chão nunca ficar abaixo de y=0 */
 const A_SITE=[15,-44.5],B_SITE=[-32,-47.5],T_SP=[-25,10],CT_SP=[-12,-39.5];
 const SRC=['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js','https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js','https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/GLTFLoader.js'];
-function st(t){try{let d=document.getElementById('d2st');if(!d){d=document.createElement('div');d.id='d2st';d.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99999;font:10px sans-serif;color:#ffd24a;background:rgba(0,0,0,.55);padding:1px 4px;pointer-events:none;max-width:70vw';document.body.appendChild(d)}d.textContent=t}catch(_){}}
+function st(t){try{let d=document.getElementById('d2st');if(!d){d=document.createElement('div');d.id='d2st';d.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99999;font:bold 15px sans-serif;color:#ffd24a;background:rgba(0,0,0,.55);padding:1px 4px;pointer-events:none;max-width:70vw';document.body.appendChild(d)}d.textContent='[v3] '+t}catch(_){}}
 const fail=e=>{st('Dust2 ERRO: '+(e&&e.message||e));dead=true;try{leave()}catch(_){}try{console.error('[dust2]',e)}catch(_){}};
 const rn=()=>typeof rnd==='function'?rnd():Math.random();
 function loadLoader(i){return new Promise((res,rej)=>{if(THREE.GLTFLoader)return res();if(i>=SRC.length)return rej(new Error('GLTFLoader indisponível'));
@@ -80,6 +80,7 @@ nav=function(b,g){
 /* ---- por quadro (roda antes das outras camadas de desenho) ---- */
 function frame(){
  const now=performance.now();let dt=(now-lt)/1000;lt=now;if(!(dt>0)||dt>.1)dt=.016;BUD=2;
+ if(now-LST>1000){LST=now;st('Dust2 LIGADO · chão '+CORE.ground(P.p.x,P.p.z).toFixed(1)+' · escondidos '+(OLDVIS?OLDVIS.length:0)+' · mapa na cena '+(GRP&&GRP.parent===S?'sim':'NÃO'))}
  const g=CORE.ground(P.p.x,P.p.z);gS=Math.abs(g-gS)>1.5?g:gS+(g-gS)*(1-Math.exp(-dt*14));
  P.p.y=g;C.position.y+=gS;
  for(const b of bots){const y=CORE.ground(b.p.x,b.p.z);b.p.y=y;if(b.mesh)b.mesh.position.y=y}
@@ -89,7 +90,7 @@ function start(){
  if(typeof THREE==='undefined'||typeof S==='undefined'||typeof D2Core==='undefined'||typeof walls==='undefined'||typeof setupMatch!=='function'||typeof newRound!=='function')throw new Error('jogo incompleto');
 
  st('Dust2 carregando…');
- Promise.all([get('dust2.bin'),get('dust2b.glb'),loadLoader(0)]).then(([bin,glb])=>{
+ Promise.all([get('dust2.bin?v=3'),get('dust2b.glb?v=3'),loadLoader(0)]).then(([bin,glb])=>{
   CORE=D2Core(bin,OFF);
   const cib0=window.createImageBitmap;window.createImageBitmap=undefined;
   try{new THREE.GLTFLoader().parse(glb,'',gltf=>{
